@@ -20,7 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 
 enum {
- CLN_QUOTE
+ CLN_QUOTE,
+ ESC_1,
+ CAPS_2
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -32,7 +34,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_NO,  KC_Z,    KC_X,    KC_C,     KC_V,    KC_B,                          KC_N,   KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_NO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                    MEH_T(KC_TAB), KC_SPC, LT(1, KC_ESC), MO(2), KC_ENT, HYPR_T(KC_BSPC)
+                                    MEH_T(KC_TAB), KC_SPC, TD(ESC_1), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
                                       //`--------------------------'  `--------------------------
   ),
 
@@ -73,6 +75,33 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   )
 };
 
+void dance_caps_2_finished (tap_dance_state_t *state, void *user_data) {
+  if (state->count == 1) {
+    layer_on (2);
+  } else {
+    register_code (KC_CAPS);
+  }
+}
+void dance_caps_2_reset (tap_dance_state_t *state, void *user_data) {
+  if (state->count == 1) {
+    layer_off (2);
+  } else {}
+}
+void dance_esc_1_finished (tap_dance_state_t *state, void *user_data) {
+  if (state->count == 1) {
+    layer_on (1);
+  } else {
+    register_code (KC_ESC);
+  }
+}
+void dance_esc_1_reset (tap_dance_state_t *state, void *user_data) {
+  if (state->count == 1) {
+    layer_off (1);
+  } else {
+    unregister_code (KC_ESC);
+  }
+}
+
 void dance_cln_finished (tap_dance_state_t *state, void *user_data) {
   if (state->count == 1) {
     register_code (KC_SCLN);
@@ -91,7 +120,9 @@ void dance_cln_reset (tap_dance_state_t *state, void *user_data) {
 
 //All tap dance functions would go here. Only showing this one.
 tap_dance_action_t tap_dance_actions[] = {
- [CLN_QUOTE] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_cln_finished, dance_cln_reset)
+ [CLN_QUOTE] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_cln_finished, dance_cln_reset),
+ [ESC_1] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_esc_1_finished, dance_esc_1_reset),
+ [CAPS_2] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_caps_2_finished, dance_caps_2_reset)
 };
 
 #ifdef OLED_ENABLE
