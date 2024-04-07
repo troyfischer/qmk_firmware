@@ -19,22 +19,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include QMK_KEYBOARD_H
 #include <stdio.h>
 
+/*
+BEGIN MY CHANGES
+ */
 enum {
  CLN_QUOTE,
  ESC_1,
- CAPS_2
+ CAPS_2,
+ LAYER_4
 };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_split_3x6_3(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-      KC_NO,    KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                         KC_Y,    KC_U,    KC_I,    KC_O,   LT(3, KC_P),  KC_NO,
+      KC_NO,  TD(LAYER_4),    KC_W,    KC_E,    KC_R,    KC_T,                         KC_Y,    KC_U,    KC_I,    KC_O,   LT(3, KC_P),  KC_NO,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_NO,  KC_A, GUI_T(KC_S), CTL_T(KC_D), SFT_T(KC_F), ALT_T(KC_G),   ALT_T(KC_H),  SFT_T(KC_J), CTL_T(KC_K), GUI_T(KC_L), TD(CLN_QUOTE), KC_NO,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_NO,  KC_Z,    KC_X,    KC_C,     KC_V,    KC_B,                          KC_N,   KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_NO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                    MEH_T(KC_TAB), KC_SPC, TD(ESC_1), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
+                                    MEH_T(KC_TAB), KC_SPC, MO(1), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
                                       //`--------------------------'  `--------------------------
   ),
 
@@ -72,9 +76,24 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                           XXXXXXX, XXXXXXX,  XXXXXXX,     XXXXXXX, XXXXXXX, XXXXXXX
                                       //`--------------------------'  `--------------------------'
-  )
+  ),
+  /* For pure typing tasks get home row mods out of the way */
+  [4] = LAYOUT_split_3x6_3(
+  //,-----------------------------------------------------.                    ,-----------------------------------------------------.
+      KC_NO,    TD(LAYER_4),    KC_W,    KC_E,    KC_R,    KC_T,                         KC_Y,    KC_U,    KC_I,    KC_O,   LT(3, KC_P),  KC_NO,
+  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
+        KC_NO,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                         KC_H,    KC_J,    KC_K,    KC_L,  CLN_QUOTE, KC_NO,
+  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
+      KC_NO,  KC_Z,    KC_X,     KC_C,     KC_V,    KC_B,                          KC_N,   KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_NO,
+  //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
+                                    MEH_T(KC_TAB), KC_SPC, TD(ESC_1), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
+                                      //`--------------------------'  `--------------------------
+  ),
 };
 
+/*
+This dance allows Layer 2 on hold and toggle caps lock on double tap
+ */
 void dance_caps_2_finished (tap_dance_state_t *state, void *user_data) {
   if (state->count == 1) {
     layer_on (2);
@@ -87,6 +106,23 @@ void dance_caps_2_reset (tap_dance_state_t *state, void *user_data) {
     layer_off (2);
   } else {}
 }
+
+
+/*
+ * Toggle layer 4 on double tap of q
+*/
+void dance_layer_4_finished (tap_dance_state_t *state, void *user_data) {
+  if (state->count == 1) {
+    tap_code (KC_Q);
+  } else if (state->count == 2) {
+    layer_invert(4);
+  }
+}
+
+/*
+ * UNUSED
+ * This toggles layer 1 when pressed once and esc when pressed twice
+*/
 void dance_esc_1_finished (tap_dance_state_t *state, void *user_data) {
   if (state->count == 1) {
     layer_on (1);
@@ -102,6 +138,9 @@ void dance_esc_1_reset (tap_dance_state_t *state, void *user_data) {
   }
 }
 
+/*
+This dance allows ; on single press and ' on double press
+ */
 void dance_cln_finished (tap_dance_state_t *state, void *user_data) {
   if (state->count == 1) {
     register_code (KC_SCLN);
@@ -122,8 +161,37 @@ void dance_cln_reset (tap_dance_state_t *state, void *user_data) {
 tap_dance_action_t tap_dance_actions[] = {
  [CLN_QUOTE] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_cln_finished, dance_cln_reset),
  [ESC_1] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_esc_1_finished, dance_esc_1_reset),
- [CAPS_2] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_caps_2_finished, dance_caps_2_reset)
+ [CAPS_2] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_caps_2_finished, dance_caps_2_reset),
+ [LAYER_4] = ACTION_TAP_DANCE_FN(dance_layer_4_finished)
 };
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  static uint16_t j_pressed, k_pressed;
+
+  switch (keycode) {
+    case KC_J:
+      if (record->event.pressed) {
+        // J is pressed
+        j_pressed = timer_read();
+      }
+      break;
+    case KC_K:
+      if (record->event.pressed) {
+        // K is pressed, check if J was pressed just before
+        k_pressed = timer_read();
+        if (TIMER_DIFF_16(k_pressed, j_pressed) < TAPPING_TERM) { // Adjust TAPPING_TERM to your preference
+          // Send ESC
+          tap_code(KC_ESC);
+          return false; // Skip the K key press
+        }
+      }
+      break;
+  }
+  return true;
+}
+/*
+END MY CHANGES
+ */
 
 #ifdef OLED_ENABLE
 oled_rotation_t oled_init_user(oled_rotation_t rotation) {
