@@ -61,8 +61,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_NO,  KC_Z,    KC_X,    KC_C,     KC_V,    KC_B,                          KC_N,   KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_NO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                    MEH_T(KC_TAB), KC_SPC, MO(1), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
+                                   MEH_T(KC_TAB), KC_SPC, LT(1, KC_ESC), TD(CAPS_2), KC_ENT, HYPR_T(KC_BSPC)
                                       //`--------------------------'  `--------------------------
+                                      // NOTE: ideas for freeing up thumb keys
+                                      // 1. Tab could probably be moved to a layer
+                                      // 2. Caps lock could DEFINITELY be moved to a layer
+
   ),
 
   [1] = LAYOUT_split_3x6_3(
@@ -85,7 +89,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
        KC_NO, XXXXXXX, XXXXXXX, KC_LBRC, KC_RBRC, XXXXXXX,                      XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, KC_NO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                          XXXXXXX,  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
+                                          KC_TAB,  XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX
                                       //`--------------------------'  `--------------------------'
   ),
 
