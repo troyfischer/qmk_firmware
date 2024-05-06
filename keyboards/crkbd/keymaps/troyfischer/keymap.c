@@ -22,19 +22,42 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /*
 BEGIN MY CHANGES
  */
-enum {
- CLN_QUOTE,
- ESC_1,
- CAPS_2,
- LAYER_4
+// Tap Dance keycodes
+enum td_keycodes {
+    ESC_1,
+    CAPS_2,
+    LAYER_4,
+    GUI_LP // `LGUI` when held, `;` when tapped `'` when double tapped
 };
+
+// Define a type containing as many tapdance states as you need
+typedef enum {
+    TD_NONE,
+    TD_UNKNOWN,
+    TD_SINGLE_TAP,
+    TD_SINGLE_HOLD,
+    TD_DOUBLE_SINGLE_TAP
+} td_state_t;
+
+// Create a global instance of the tapdance state type
+static td_state_t td_state;
+
+// Declare your tapdance functions:
+
+// Function to determine the current tapdance state
+td_state_t cur_dance(tap_dance_state_t *state);
+
+// `finished` and `reset` functions for each tapdance keycode
+void guilp_finished(tap_dance_state_t *state, void *user_data);
+void guilp_reset(tap_dance_state_t *state, void *user_data);
+
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_split_3x6_3(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
       KC_NO,  TD(LAYER_4),    KC_W,    KC_E,    KC_R,    KC_T,                         KC_Y,    KC_U,    KC_I,    KC_O,   LT(3, KC_P),  KC_NO,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      KC_NO,  KC_A, ALT_T(KC_S), CTL_T(KC_D), SFT_T(KC_F), GUI_T(KC_G),   GUI_T(KC_H),  SFT_T(KC_J), CTL_T(KC_K), ALT_T(KC_L), TD(CLN_QUOTE), KC_NO,
+      KC_NO,  GUI_T(KC_A), ALT_T(KC_S), CTL_T(KC_D), SFT_T(KC_F), KC_G,          KC_H,  SFT_T(KC_J), CTL_T(KC_K), ALT_T(KC_L), TD(GUI_LP), KC_NO,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_NO,  KC_Z,    KC_X,    KC_C,     KC_V,    KC_B,                          KC_N,   KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_NO,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
@@ -159,36 +182,58 @@ void dance_cln_reset (tap_dance_state_t *state, void *user_data) {
 
 //All tap dance functions would go here. Only showing this one.
 tap_dance_action_t tap_dance_actions[] = {
- [CLN_QUOTE] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_cln_finished, dance_cln_reset),
  [ESC_1] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_esc_1_finished, dance_esc_1_reset),
  [CAPS_2] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, dance_caps_2_finished, dance_caps_2_reset),
- [LAYER_4] = ACTION_TAP_DANCE_FN(dance_layer_4_finished)
+ [LAYER_4] = ACTION_TAP_DANCE_FN(dance_layer_4_finished),
+ [GUI_LP] = ACTION_TAP_DANCE_FN_ADVANCED(NULL, guilp_finished, guilp_reset)
 };
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  static uint16_t j_pressed, k_pressed;
+// Determine the tapdance state to return
+td_state_t cur_dance(tap_dance_state_t *state) {
+    if (state->count == 1) {
+        if (state->interrupted || !state->pressed) return TD_SINGLE_TAP;
+        else return TD_SINGLE_HOLD;
+    }
 
-  switch (keycode) {
-    case KC_J:
-      if (record->event.pressed) {
-        // J is pressed
-        j_pressed = timer_read();
-      }
-      break;
-    case KC_K:
-      if (record->event.pressed) {
-        // K is pressed, check if J was pressed just before
-        k_pressed = timer_read();
-        if (TIMER_DIFF_16(k_pressed, j_pressed) < TAPPING_TERM) { // Adjust TAPPING_TERM to your preference
-          // Send ESC
-          tap_code(KC_ESC);
-          return false; // Skip the K key press
-        }
-      }
-      break;
-  }
-  return true;
+    if (state->count == 2) return TD_DOUBLE_SINGLE_TAP;
+    else return TD_UNKNOWN; // Any number higher than the maximum state value you return above
 }
+
+// Handle the possible states for each tapdance keycode you define:
+void guilp_finished(tap_dance_state_t *state, void *user_data) {
+    td_state = cur_dance(state);
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            register_code16(KC_SCLN);
+            break;
+        case TD_SINGLE_HOLD:
+            register_mods(MOD_BIT(KC_LGUI)); // For a layer-tap key, use `layer_on(_MY_LAYER)` here
+            break;
+        case TD_DOUBLE_SINGLE_TAP: // Allow nesting of 2 parens `((` within tapping term
+            register_code16(KC_QUOT);
+            break;
+        default:
+            break;
+    }
+}
+
+
+void guilp_reset(tap_dance_state_t *state, void *user_data) {
+    switch (td_state) {
+        case TD_SINGLE_TAP:
+            unregister_code16(KC_SCLN);
+            break;
+        case TD_SINGLE_HOLD:
+            unregister_mods(MOD_BIT(KC_LGUI)); // For a layer-tap key, use `layer_off(_MY_LAYER)` here
+            break;
+        case TD_DOUBLE_SINGLE_TAP:
+            unregister_code16(KC_QUOT);
+            break;
+        default:
+            break;
+    }
+}
+
 /*
 END MY CHANGES
  */
